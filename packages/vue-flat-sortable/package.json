@@ -1,0 +1,46 @@
+{
+  "name": "vue-flat-sortable",
+  "type": "module",
+  "version": "1.0.9-alpha.0.1",
+  "private": false,
+  "author": "pinky-pig",
+  "license": "MIT",
+  "homepage": "https://what-is-vue-flat-sortable.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pinky-pig/vue-flat-sortable"
+  },
+  "keywords": [
+    "vue3-dragblock",
+    "vue3-drag-resize-component",
+    "drag",
+    "resize",
+    "adsrob"
+  ],
+  "exports": {
+    ".": {
+      "require": "./dist/vue-flat-sortable.umd.js",
+      "import": "./dist/vue-flat-sortable.es.js"
+    }
+  },
+  "main": "./dist/vue-flat-sortable.umd.js",
+  "module": "./dist/vue-flat-sortable.es.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vueuse/core": "^10.7.2",
+    "typescript": "^4.9.3",
+    "vue": "^3.4.7"
+  }
+}
