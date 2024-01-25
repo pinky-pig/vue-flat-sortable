@@ -22,6 +22,7 @@ import {
   width: 200px;
   height: 100px;
   border: 1px solid rgb(150 148 223);
+  background: #9694df90;
   border-radius: 10px;
 }
 </style>
