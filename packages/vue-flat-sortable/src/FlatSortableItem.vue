@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { FlatSortableItemEmits, FlatSortableItemProps } from './types';
-
 
 const props = defineProps<FlatSortableItemProps & { class?: string, inset?: boolean }>()
 const emits = defineEmits<FlatSortableItemEmits>()
@@ -10,8 +8,8 @@ const emits = defineEmits<FlatSortableItemEmits>()
 
 <template>
   <div 
+    class="flat-sortable-item"
     :class="props.class" 
-    ref="itemRef" 
     :draggable="true"
   >
     <slot />

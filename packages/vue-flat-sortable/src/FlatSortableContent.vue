@@ -1,45 +1,57 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { FlatSortableContentEmits, FlatSortableContentProps } from './types';
+import { ref } from 'vue';
 
-const props = defineProps<FlatSortableContentProps & { class?: string }>()
-const emits = defineEmits<FlatSortableContentEmits>()
+interface FlatSortableContentProps {
+  class?: string;
+  direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
+  gap?: number;
+}
 
-const containerRef = ref<HTMLElement | null>(null)
+const props = defineProps<FlatSortableContentProps>();
+const emits = defineEmits();
+const containerRef = ref<HTMLElement | null>(null);
+const currentNode = ref<HTMLElement | null>(null);
 
+const handleDragstart = (e: DragEvent) => {
+  if (!isFlatSortableItem(e.target as HTMLElement)) {
+    return
+  }
 
-const currentNode = ref()
-function handleDragstart(e: DragEvent) {
   setTimeout(() => {
-    e.target.classList.add('sortable-chosen')
+    currentNode.value = e.target as HTMLElement;
+    currentNode.value?.classList.add('sortable-chosen');
   });
+  e.dataTransfer!.effectAllowed = 'move';
 
-  e.dataTransfer!.effectAllowed = 'move'
-  currentNode.value = e.target
-}
-function handleDragOver(e: DragEvent) {
-  e.preventDefault()
-  
-}
-function handleDragEnter(e: DragEvent) {
-  e.preventDefault()
-  if (currentNode.value === e.target || e.target === containerRef.value) return
-if (!containerRef.value) return
+};
 
-  const nodes = Array.from(containerRef.value.children)
-  const currentIndex = nodes.indexOf(currentNode.value)
-  const targetIndex = nodes.indexOf(e.target as HTMLElement)
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault();
+};
+
+const handleDragEnter = (e: DragEvent) => {
+  e.preventDefault();
+  if (!currentNode.value || currentNode.value === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
+
+  const nodes = Array.from(containerRef.value!.children);
+  const currentIndex = nodes.indexOf(currentNode.value);
+  const targetIndex = nodes.indexOf(e.target as HTMLElement);
 
   if (currentIndex < targetIndex) {
-    e.target.parentElement?.insertBefore(currentNode.value, e.target.nextSibling)
+    // 插入其后
+    (e.target as HTMLElement).parentElement?.insertBefore(currentNode.value, (e.target as HTMLElement).nextSibling);
+  } else {
+    // 插入其前
+    (e.target as HTMLElement).parentElement?.insertBefore(currentNode.value, (e.target as HTMLElement));
   }
-  else {
-    e.target.parentElement?.insertBefore(currentNode.value, e.target)
-  }
-}
+};
 
-function handleDragEnd(e: DragEvent) {
-  e.target.classList.remove('sortable-chosen')
+const handleDragEnd = (e: DragEvent) => {
+  currentNode.value?.classList.remove('sortable-chosen');
+};
+
+function isFlatSortableItem(el: HTMLElement) {
+  return el.classList.contains('flat-sortable-item');
 }
 </script>
 
@@ -47,11 +59,12 @@ function handleDragEnd(e: DragEvent) {
   <div 
     ref="containerRef"
     :class="props.class" 
-    class="translate-z-0"
+    class="translate-x-0"
     :style="{
       display: 'flex',
       flexDirection: props.direction || 'column',
       gap: (props.gap || 0) + 'px',
+      transform: 'skew(0)',
     }"
     @dragstart="handleDragstart"
     @dragenter="handleDragEnter"
@@ -61,8 +74,10 @@ function handleDragEnd(e: DragEvent) {
     <slot />
   </div>
 </template>
+
 <style >
 .sortable-chosen{
-  transform: translateZ(0);
+  cursor: pointer;
 }
+
 </style>
