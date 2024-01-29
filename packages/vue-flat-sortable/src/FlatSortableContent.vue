@@ -17,6 +17,7 @@ const handleDragstart = (e: DragEvent) => {
     return
   }
 
+  record(containerRef.value!.children)
   setTimeout(() => {
     currentNode.value = e.target as HTMLElement;
     currentNode.value?.classList.add('sortable-chosen');
@@ -44,6 +45,8 @@ const handleDragEnter = (e: DragEvent) => {
     // 插入其前
     (e.target as HTMLElement).parentElement?.insertBefore(currentNode.value, (e.target as HTMLElement));
   }
+
+  last([e.target,currentNode.value])
 };
 
 const handleDragEnd = (e: DragEvent) => {
@@ -52,6 +55,37 @@ const handleDragEnd = (e: DragEvent) => {
 
 function isFlatSortableItem(el: HTMLElement) {
   return el.classList.contains('flat-sortable-item');
+}
+
+
+
+function record(eleAll: any) {
+  for( let i = 0;i < eleAll.length; i++ ) {
+    const { top,left } = eleAll[i].getBoundingClientRect()
+    eleAll[i]._top_ = top
+    eleAll[i]._left_ = left
+  }
+}
+ 
+ 
+ 
+function last(eleAll: any) {
+  for( let i = 0;i < eleAll.length; i++ ) {
+    const dom = eleAll[i]
+    const { top,left } = dom.getBoundingClientRect()
+    if(dom._left_) {
+      dom.style.transform = `translate3d(${ dom._left_ - left }px, ${ dom._top_ - top }px,0px)`
+ 
+      let rafId = requestAnimationFrame(function() {
+        dom.style.transition = 'transform 300ms ease-out'
+        dom.style.transform = 'none'
+      })
+      dom.addEventListener('transitionend', () => {
+        dom.style.transition = 'none'
+        cancelAnimationFrame(rafId)
+      })
+    }
+  }
 }
 </script>
 
@@ -78,6 +112,9 @@ function isFlatSortableItem(el: HTMLElement) {
 <style >
 .sortable-chosen{
   cursor: pointer;
+  background: transparent;
+      color: transparent;
+      border: 1px  dashed #ccc;
 }
 
 </style>
