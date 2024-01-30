@@ -17,13 +17,11 @@ const handleDragstart = (e: DragEvent) => {
     return
   }
 
-  record(containerRef.value!.children)
   setTimeout(() => {
     currentNode.value = e.target as HTMLElement;
     currentNode.value?.classList.add('sortable-chosen');
   });
   e.dataTransfer!.effectAllowed = 'move';
-
 };
 
 const handleDragOver = (e: DragEvent) => {
@@ -31,22 +29,16 @@ const handleDragOver = (e: DragEvent) => {
 };
 
 const handleDragEnter = (e: DragEvent) => {
+
   e.preventDefault();
+
   if (!currentNode.value || currentNode.value === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
-  const nodes = Array.from(containerRef.value!.children);
-  const currentIndex = nodes.indexOf(currentNode.value);
-  const targetIndex = nodes.indexOf(e.target as HTMLElement);
-
-  if (currentIndex < targetIndex) {
-    // 插入其后
-    (e.target as HTMLElement).parentElement?.insertBefore(currentNode.value, (e.target as HTMLElement).nextSibling);
-  } else {
-    // 插入其前
-    (e.target as HTMLElement).parentElement?.insertBefore(currentNode.value, (e.target as HTMLElement));
-  }
-
-  last([e.target,currentNode.value])
+  hitAllEle(
+    currentNode.value,
+    e.target as HTMLElement,
+    Array.from(containerRef.value!.children) as HTMLElement[]
+  )
 };
 
 const handleDragEnd = (e: DragEvent) => {
@@ -58,63 +50,100 @@ function isFlatSortableItem(el: HTMLElement) {
 }
 
 
+/**
+ * 1. 记录当前元素的位置信息
+ * 2. 判断碰撞的元素
+ * 3. 更新碰撞的元素的位置信息
+ */
 
-function record(eleAll: any) {
-  for( let i = 0;i < eleAll.length; i++ ) {
-    const { top,left } = eleAll[i].getBoundingClientRect()
-    eleAll[i]._top_ = top
-    eleAll[i]._left_ = left
-  }
+interface Rectangle {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  el: HTMLElement
 }
- 
- 
- 
-function last(eleAll: any) {
-  for( let i = 0;i < eleAll.length; i++ ) {
-    const dom = eleAll[i]
-    const { top,left } = dom.getBoundingClientRect()
-    if(dom._left_) {
-      dom.style.transform = `translate3d(${ dom._left_ - left }px, ${ dom._top_ - top }px,0px)`
- 
-      let rafId = requestAnimationFrame(function() {
-        dom.style.transition = 'transform 300ms ease-out'
-        dom.style.transform = 'none'
-      })
-      dom.addEventListener('transitionend', () => {
-        dom.style.transition = 'none'
-        cancelAnimationFrame(rafId)
-      })
-    }
-  }
+
+function recordSingle(el: HTMLElement): Rectangle {
+  const { top, left, width, height } = el.getBoundingClientRect();
+  return { top, left, width, height, el }
 }
+
+async function hitAllEle(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
+  
+
+  // First
+  const originRectFirst = recordSingle(originNode);
+  const targetRectFirst = recordSingle(targetNode);
+  const currentIndex = allNodes.indexOf(originNode);
+  const targetIndex = allNodes.indexOf(targetNode);
+
+  if (currentIndex < targetIndex) {
+    // 插入其后
+    targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling);
+  } else {
+    // 插入其前
+    targetNode.parentElement?.insertBefore(originNode, targetNode);
+  }
+
+  // Last
+  const originRectLast = recordSingle(originNode);
+  const targetRectLast = recordSingle(targetNode);
+
+  // Play
+  const originDiff = {
+    top: originRectLast.top - originRectFirst.top,
+    left: originRectLast.left - originRectFirst.left,
+  };
+  const targetDiff = {
+    top: targetRectLast.top - targetRectFirst.top,
+    left: targetRectLast.left - targetRectFirst.left,
+  };
+  const animations = [
+    animateElement(targetNode, targetDiff),
+    animateElement(originNode, originDiff),
+  ];
+
+  // 等待所有动画完成
+  await Promise.all(animations);
+
+}
+
+async function animateElement(element: HTMLElement, diff: { top: number; left: number }) {
+  return new Promise<void>((resolve) => {
+    const animates = [
+      `translate3d(${-diff.left}px, ${-diff.top}px,0px)`,
+      'translate3d(0px, 0px, 0px)',
+    ];
+    const animation = element.animate(
+      { transform: animates },
+      { duration: 300, easing: 'linear', fill: 'backwards' },
+    );
+    animation.onfinish = () => {
+      resolve();
+    };
+  });
+}
+
 </script>
 
 <template>
-  <div 
-    ref="containerRef"
-    :class="props.class" 
-    class="translate-x-0"
-    :style="{
-      display: 'flex',
-      flexDirection: props.direction || 'column',
-      gap: (props.gap || 0) + 'px',
-      transform: 'skew(0)',
-    }"
-    @dragstart="handleDragstart"
-    @dragenter="handleDragEnter"
-    @dragover="handleDragOver"
-    @dragend="handleDragEnd"
-  >
+  <div ref="containerRef" :class="props.class" class="translate-x-0" :style="{
+    display: 'flex',
+    flexDirection: props.direction || 'column',
+    gap: (props.gap || 0) + 'px',
+    transform: 'skew(0)',
+  }" @dragstart="handleDragstart" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragend="handleDragEnd">
+
     <slot />
   </div>
 </template>
 
 <style >
-.sortable-chosen{
+.sortable-chosen {
   cursor: pointer;
-  background: transparent;
-      color: transparent;
-      border: 1px  dashed #ccc;
+  background: transparent !important;
+  color: transparent;
+  border: 1px dashed #ccc;
 }
-
 </style>
