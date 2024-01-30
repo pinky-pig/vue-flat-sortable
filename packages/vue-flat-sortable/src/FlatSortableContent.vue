@@ -7,21 +7,90 @@ interface FlatSortableContentProps {
   gap?: number;
 }
 
+interface Rectangle {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+  width: number;
+  height: number;
+  el: HTMLElement | Element
+}
+
+
 const props = defineProps<FlatSortableContentProps>();
 const emits = defineEmits();
 const containerRef = ref<HTMLElement | null>(null);
+const allItemNodes = ref<Rectangle[]>([])
 const currentNode = ref<HTMLElement | null>(null);
 
+
+const currentNodePosition = ref<Omit<Rectangle,'el'> & {centerX: number,centerY: number,offsetXFromMouse: number,offsetYFromMouse: number, }>({
+  top: 0,
+  left:0,
+  bottom:0,
+  right:0,
+  centerX:0,
+  centerY:0,
+  width:0,
+  height:0,
+  offsetXFromMouse:0,
+  offsetYFromMouse:0,
+})
+const dom = ref()
+
+const handleDrag = (e: DragEvent) => {
+  if (dom.value) {
+    dom.value.style.left = e.clientX - currentNodePosition.value.offsetXFromMouse  + 'px'
+    dom.value.style.top = e.clientY - currentNodePosition.value.offsetYFromMouse + 'px'
+  }
+}
+
 const handleDragstart = (e: DragEvent) => {
+
+  
+  setTimeout(() => {
+    currentNode.value = e.target as HTMLElement;
+    currentNode.value?.classList.add('sortable-chosen');
+
+
+    allItemNodes.value = Array.from(containerRef.value!.children).map(item => {
+      return recordSingle(item)
+    })
+
+
+
+    if (!dom.value) {
+      const currentRect = recordSingle(currentNode.value)
+
+      currentNodePosition.value.offsetXFromMouse = e.clientX - currentRect.left
+      currentNodePosition.value.offsetYFromMouse = e.clientY - currentRect.top
+
+
+      currentNodePosition.value.centerX = currentRect.left + currentRect.width / 2
+      currentNodePosition.value.centerY = currentRect.top + currentRect.height / 2
+
+      dom.value = document.createElement('div')
+      dom.value.style.width = '3px'
+      dom.value.style.height = '3px'
+      dom.value.style.background = 'red'
+      dom.value.style.position = 'fixed'
+      dom.value.style.left = currentRect.left + currentRect.width / 2 + 'px'
+      dom.value.style.top = currentRect.top + currentRect.height / 2 + 'px'
+      document.body.appendChild(dom.value)
+    }
+
+
   if (!isFlatSortableItem(e.target as HTMLElement)) {
     return
   }
 
-  setTimeout(() => {
-    currentNode.value = e.target as HTMLElement;
-    currentNode.value?.classList.add('sortable-chosen');
+
   });
   e.dataTransfer!.effectAllowed = 'move';
+
+
+  
 };
 
 const handleDragOver = (e: DragEvent) => {
@@ -34,19 +103,50 @@ const handleDragEnter = (e: DragEvent) => {
 
   if (!currentNode.value || currentNode.value === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
-  hitAllEle(
-    currentNode.value,
-    e.target as HTMLElement,
-    Array.from(containerRef.value!.children) as HTMLElement[]
-  )
+  // hitAllEle(
+  //   currentNode.value,
+  //   e.target as HTMLElement,
+  //   Array.from(containerRef.value!.children) as HTMLElement[]
+  // )
 };
+
 
 const handleDragEnd = (e: DragEvent) => {
   currentNode.value?.classList.remove('sortable-chosen');
+
+
+  document.body.removeChild(dom.value)
+  dom.value = null;
+
 };
 
 function isFlatSortableItem(el: HTMLElement) {
   return el.classList.contains('flat-sortable-item');
+}
+
+function getAllHittedNodes() {
+  const hittedNodes: any = []
+  const originRectFirst = recordSingle(currentNode.value!);
+
+  // 1.找到当前元素第一层碰撞的元素
+  allItemNodes.value.forEach((n: Rectangle, index: number) => {
+
+    if (n.el == currentNode.value) {
+      return
+    }
+
+    const centerX = originRectFirst.left + originRectFirst.width / 2;
+    const centerY = originRectFirst.top + originRectFirst.height / 2;
+
+
+    if (checkHit({x: centerX,y: centerY},n)) {
+      // 将当前碰撞的要素添加到数组中
+      hittedNodes.push(n)
+      console.log(111);
+    }
+  })
+
+  return hittedNodes
 }
 
 
@@ -56,17 +156,10 @@ function isFlatSortableItem(el: HTMLElement) {
  * 3. 更新碰撞的元素的位置信息
  */
 
-interface Rectangle {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-  el: HTMLElement
-}
 
-function recordSingle(el: HTMLElement): Rectangle {
-  const { top, left, width, height } = el.getBoundingClientRect();
-  return { top, left, width, height, el }
+function recordSingle(el: HTMLElement | Element): Rectangle {
+  const { top, left, width, height, right,bottom } = el.getBoundingClientRect();
+  return { top, left, width, height, el,right,bottom }
 }
 
 async function hitAllEle(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
@@ -125,6 +218,15 @@ async function animateElement(element: HTMLElement, diff: { top: number; left: n
   });
 }
 
+function checkHit(a: { x: number,y:number}, b: Rectangle) {
+  return (
+    a.x >= b.left &&
+    a.x <= (b.left + b.width) &&
+    a.y >= b.top &&
+    a.y <= (b.top + b.height)
+  )
+}
+
 </script>
 
 <template>
@@ -133,7 +235,7 @@ async function animateElement(element: HTMLElement, diff: { top: number; left: n
     flexDirection: props.direction || 'column',
     gap: (props.gap || 0) + 'px',
     transform: 'skew(0)',
-  }" @dragstart="handleDragstart" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragend="handleDragEnd">
+  }" @dragstart="handleDragstart" @drag="handleDrag" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragend="handleDragEnd">
 
     <slot />
   </div>
