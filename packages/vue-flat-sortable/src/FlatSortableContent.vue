@@ -34,7 +34,7 @@ const handleDragEnter = (e: DragEvent) => {
 
   if (!currentNode.value || currentNode.value === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
-  hitAllEle(
+  updateElePosition(
     currentNode.value,
     e.target as HTMLElement,
     Array.from(containerRef.value!.children) as HTMLElement[]
@@ -69,9 +69,7 @@ function recordSingle(el: HTMLElement): Rectangle {
   return { top, left, width, height, el }
 }
 
-async function hitAllEle(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
-  
-
+async function updateElePosition(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
   // First
   const originRectFirst = recordSingle(originNode);
   const targetRectFirst = recordSingle(targetNode);
@@ -145,5 +143,6 @@ async function animateElement(element: HTMLElement, diff: { top: number; left: n
   background: transparent !important;
   color: transparent;
   border: 1px dashed #ccc;
+  pointer-events: none;
 }
 </style>
