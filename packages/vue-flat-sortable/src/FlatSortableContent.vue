@@ -7,90 +7,116 @@ interface FlatSortableContentProps {
   gap?: number;
 }
 
-interface Rectangle {
+interface INodeType {
   top: number;
   left: number;
   bottom: number;
   right: number;
   width: number;
   height: number;
-  el: HTMLElement | Element
+  el: HTMLElement | Element | null
+}
+
+interface IDraggedNodeType extends INodeType {
+  offsetXFromMouse: number,
+  offsetYFromMouse: number,
 }
 
 
 const props = defineProps<FlatSortableContentProps>();
 const emits = defineEmits();
+
+
+// 容器 DOM
 const containerRef = ref<HTMLElement | null>(null);
-const allItemNodes = ref<Rectangle[]>([])
-const currentNode = ref<HTMLElement | null>(null);
 
+// 所有的子元素节点
+const allItemNodes = ref<INodeType[]>([])
 
-const currentNodePosition = ref<Omit<Rectangle,'el'> & {centerX: number,centerY: number,offsetXFromMouse: number,offsetYFromMouse: number, }>({
+// 当前元素的节点
+const draggedNode = ref<IDraggedNodeType>({
   top: 0,
-  left:0,
-  bottom:0,
-  right:0,
-  centerX:0,
-  centerY:0,
-  width:0,
-  height:0,
-  offsetXFromMouse:0,
-  offsetYFromMouse:0,
-})
+  left: 0,
+  bottom: 0,
+  right: 0,
+  width: 0,
+  height: 0,
+  offsetXFromMouse: 0,
+  offsetYFromMouse: 0,
+  el: null,
+});
+
 const dom = ref()
 
 const handleDrag = (e: DragEvent) => {
   if (dom.value) {
-    dom.value.style.left = e.clientX - currentNodePosition.value.offsetXFromMouse  + 'px'
-    dom.value.style.top = e.clientY - currentNodePosition.value.offsetYFromMouse + 'px'
+    dom.value.style.left = e.clientX - draggedNode.value.offsetXFromMouse + draggedNode.value.width / 2 + 'px'
+    dom.value.style.top = e.clientY - draggedNode.value.offsetYFromMouse + draggedNode.value.height / 2 + 'px'
+
+    // 1. 找到所有碰撞的的元素
+    // 2. 改变碰撞的位置
+    const hittedNodes = getAllHittedNodes(e)
+
+    hittedNodes.forEach((node: { el: HTMLElement; }) => {
+
+      hitAllEle(
+        draggedNode.value.el as HTMLElement,
+        node.el as HTMLElement,
+        Array.from(containerRef.value!.children) as HTMLElement[]
+      )
+    })
+
   }
 }
 
 const handleDragstart = (e: DragEvent) => {
 
-  
+  //  如果拖拽的不是 FlatSortableItem 则不进行拖拽
+  if (!isFlatSortableItem(e.target as HTMLElement)) {
+    return
+  }
+
+  // 初始化 draggedNode 的状态
+  const currentRect = recordSingle(e.target as HTMLElement)
+  draggedNode.value.el = e.target as HTMLElement;
+  draggedNode.value.offsetXFromMouse = e.clientX - currentRect.left;
+  draggedNode.value.offsetYFromMouse = e.clientY - currentRect.top;
+  draggedNode.value.top = currentRect.top;
+  draggedNode.value.left = currentRect.left;
+  draggedNode.value.bottom = currentRect.bottom;
+  draggedNode.value.right = currentRect.right;
+  draggedNode.value.width = currentRect.width;
+  draggedNode.value.height = currentRect.height;
+
+  // 初始化所有 Node 的状态
+  allItemNodes.value = Array.from(containerRef.value!.children).map(item => {
+    return {
+      ...recordSingle(item),
+      el: item
+    }
+  })
+
   setTimeout(() => {
-    currentNode.value = e.target as HTMLElement;
-    currentNode.value?.classList.add('sortable-chosen');
 
-
-    allItemNodes.value = Array.from(containerRef.value!.children).map(item => {
-      return recordSingle(item)
-    })
-
-
+    // 添加 draggedNode 样式
+    if (draggedNode.value && draggedNode.value.el) {
+      draggedNode.value?.el.classList.add('sortable-chosen');
+    }
 
     if (!dom.value) {
-      const currentRect = recordSingle(currentNode.value)
-
-      currentNodePosition.value.offsetXFromMouse = e.clientX - currentRect.left
-      currentNodePosition.value.offsetYFromMouse = e.clientY - currentRect.top
-
-
-      currentNodePosition.value.centerX = currentRect.left + currentRect.width / 2
-      currentNodePosition.value.centerY = currentRect.top + currentRect.height / 2
-
       dom.value = document.createElement('div')
       dom.value.style.width = '3px'
       dom.value.style.height = '3px'
       dom.value.style.background = 'red'
       dom.value.style.position = 'fixed'
-      dom.value.style.left = currentRect.left + currentRect.width / 2 + 'px'
-      dom.value.style.top = currentRect.top + currentRect.height / 2 + 'px'
+      dom.value.style.left = draggedNode.value.left + draggedNode.value.width / 2 + 'px'
+      dom.value.style.top = draggedNode.value.top + draggedNode.value.height / 2 + 'px'
       document.body.appendChild(dom.value)
     }
-
-
-  if (!isFlatSortableItem(e.target as HTMLElement)) {
-    return
-  }
-
 
   });
   e.dataTransfer!.effectAllowed = 'move';
 
-
-  
 };
 
 const handleDragOver = (e: DragEvent) => {
@@ -101,10 +127,10 @@ const handleDragEnter = (e: DragEvent) => {
 
   e.preventDefault();
 
-  if (!currentNode.value || currentNode.value === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
+  if (!draggedNode.value || draggedNode.value.el === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
   // hitAllEle(
-  //   currentNode.value,
+  //   draggedNode.value,
   //   e.target as HTMLElement,
   //   Array.from(containerRef.value!.children) as HTMLElement[]
   // )
@@ -112,7 +138,9 @@ const handleDragEnter = (e: DragEvent) => {
 
 
 const handleDragEnd = (e: DragEvent) => {
-  currentNode.value?.classList.remove('sortable-chosen');
+  if (draggedNode.value && draggedNode.value.el) {
+    draggedNode.value?.el.classList.remove('sortable-chosen');
+  }
 
 
   document.body.removeChild(dom.value)
@@ -124,22 +152,19 @@ function isFlatSortableItem(el: HTMLElement) {
   return el.classList.contains('flat-sortable-item');
 }
 
-function getAllHittedNodes() {
+function getAllHittedNodes(e: DragEvent) {
+  if (!draggedNode.value.el) {
+    return
+  }
   const hittedNodes: any = []
-  const originRectFirst = recordSingle(currentNode.value!);
-
   // 1.找到当前元素第一层碰撞的元素
-  allItemNodes.value.forEach((n: Rectangle, index: number) => {
-
-    if (n.el == currentNode.value) {
+  allItemNodes.value.forEach((n: INodeType, index: number) => {
+    if (n.el == draggedNode.value.el) {
       return
     }
-
-    const centerX = originRectFirst.left + originRectFirst.width / 2;
-    const centerY = originRectFirst.top + originRectFirst.height / 2;
-
-
-    if (checkHit({x: centerX,y: centerY},n)) {
+    const x = e.clientX - draggedNode.value.offsetXFromMouse + draggedNode.value.width / 2
+    const y = e.clientY - draggedNode.value.offsetYFromMouse + draggedNode.value.height / 2
+    if (checkHit({ x, y }, n)) {
       // 将当前碰撞的要素添加到数组中
       hittedNodes.push(n)
       console.log(111);
@@ -157,13 +182,13 @@ function getAllHittedNodes() {
  */
 
 
-function recordSingle(el: HTMLElement | Element): Rectangle {
-  const { top, left, width, height, right,bottom } = el.getBoundingClientRect();
-  return { top, left, width, height, el,right,bottom }
+function recordSingle(el: HTMLElement | Element): INodeType {
+  const { top, left, width, height, right, bottom } = el.getBoundingClientRect();
+  return { top, left, width, height, el, right, bottom }
 }
 
 async function hitAllEle(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
-  
+
 
   // First
   const originRectFirst = recordSingle(originNode);
@@ -218,7 +243,7 @@ async function animateElement(element: HTMLElement, diff: { top: number; left: n
   });
 }
 
-function checkHit(a: { x: number,y:number}, b: Rectangle) {
+function checkHit(a: { x: number, y: number }, b: INodeType) {
   return (
     a.x >= b.left &&
     a.x <= (b.left + b.width) &&
@@ -235,7 +260,8 @@ function checkHit(a: { x: number,y:number}, b: Rectangle) {
     flexDirection: props.direction || 'column',
     gap: (props.gap || 0) + 'px',
     transform: 'skew(0)',
-  }" @dragstart="handleDragstart" @drag="handleDrag" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragend="handleDragEnd">
+  }" @dragstart="handleDragstart" @drag="handleDrag" @dragenter="handleDragEnter" @dragover="handleDragOver"
+    @dragend="handleDragEnd">
 
     <slot />
   </div>
@@ -247,5 +273,6 @@ function checkHit(a: { x: number,y:number}, b: Rectangle) {
   background: transparent !important;
   color: transparent;
   border: 1px dashed #ccc;
+  pointer-events: none !important;
 }
 </style>
