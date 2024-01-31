@@ -11,13 +11,13 @@ import {
 <template>
   <FlatSortable>
     <FlatSortableContent :gap="10" class="content112">
-      <FlatSortableItem class="item" v-for="(item, index) in 4" :key="index">
+      <FlatSortableItem class="item" v-for="(item, index) in 3" :key="index">
         {{ item }}
       </FlatSortableItem>
 
-      <!-- <FlatSortableItem class="item100">
+      <FlatSortableItem class="item100">
         {{ 100 }}
-      </FlatSortableItem> -->
+      </FlatSortableItem>
 
     </FlatSortableContent>
   </FlatSortable>
