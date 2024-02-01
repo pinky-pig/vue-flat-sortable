@@ -152,11 +152,16 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
       top: targetRectLast.top - targetRectFirst.top,
       left: targetRectLast.left - targetRectFirst.left,
     };
-    animateElement(targetNode, targetDiff)
     animateElement(originNode, originDiff)
+    animateElement(targetNode, targetDiff)
   }
   else if (Math.abs(currentIndex - targetIndex) > 1) {
-    const firsts = allNodes.map(node => {
+
+    const filterNodes = allNodes.filter((node,index) => {
+      return index >= Math.min(currentIndex, targetIndex) && index <= Math.max(currentIndex, targetIndex)
+    });
+
+    const firsts = filterNodes.map(node => {
       return recordSingle(node)
     })
   
@@ -166,12 +171,12 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
       targetNode.parentElement?.insertBefore(originNode, targetNode);
     }
     nextTick( () => {
-      const lasts = allNodes.map(node => {
+      const lasts = filterNodes.map(node => {
         return recordSingle(node)
       })
     
-      for (let i = 0; i < allNodes.length; i++) {
-        const node = allNodes[i];
+      for (let i = 0; i < filterNodes.length; i++) {
+        const node = filterNodes[i];
         const first = firsts[i];
         const last = lasts[i];
         const diff = {
@@ -243,11 +248,9 @@ async function animateElement(
 
 <style >
 .sortable-chosen {
-  cursor: pointer;
-  background: transparent !important;
-  color: transparent;
-  border: 1px dashed #ccc;
+  will-change: transform;
   pointer-events: none !important;
+  opacity: 0.2;
 }
 
 </style>

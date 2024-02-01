@@ -5,7 +5,7 @@ import Sticker from './Sticker.vue'
 </script>
 
 <template>
-  <div class="w-full h-fit p-[10px] rounded-md border border-dashed border-black bg-[#eeeeee]">
+  <div class="w-full h-full p-[10px] rounded-md border border-dashed border-black bg-[#eeeeee]">
     <FlatSortable>
       <FlatSortableContent direction="row" :gap="10" class="flex flex-row flex-wrap">
         <FlatSortableItem class="w-[140px] h-[100px] rounded-md">

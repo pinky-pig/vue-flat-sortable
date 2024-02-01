@@ -7,7 +7,7 @@ import Other from './components/Other.vue'
 <template>
   <div class="w-screen flex flex-col justify-start items-center gap-6">
 
-    <div class="w-[60vw]">
+    <div class="w-[60vw] h-[60vh] ">
       <span class="font-bold"> Other:</span>
       <Other></Other>
     </div>
@@ -15,9 +15,9 @@ import Other from './components/Other.vue'
     <!-- <div class="w-[60vw]">
       <span class="font-bold"> Row:</span>
       <Row ></Row>
-    </div>
+    </div> -->
 
-    <div class="w-[60vw]">
+    <!-- <div class="w-[60vw]">
       <span class="font-bold"> Column:</span>
       <Column></Column>
     </div> -->
