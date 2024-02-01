@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 /********************************************************/
 /*                 dragstart 开始拖拽                    */
@@ -8,8 +8,6 @@ import { ref } from 'vue';
 
 const props = defineProps<FlatSortableContentProps>();
 const emits = defineEmits();
-
-
 
 interface FlatSortableContentProps {
   class?: string;
@@ -38,8 +36,6 @@ interface IDraggedNodeType{
   offsetYFromMouse: number,
 }
 
-
-
 // 容器 DOM
 const containerRef = ref<HTMLElement | null>(null);
 
@@ -55,8 +51,6 @@ const draggedNode = ref<IDraggedNodeType>({
   shadowEl:null
 });
 
-
-
 /********************************************************/
 /*                 1. 占位 DOM                          */
 /*                 2. 跟随鼠标 DOM                       */
@@ -64,10 +58,7 @@ const draggedNode = ref<IDraggedNodeType>({
 /********************************************************/
 
 function handleDrag(e: DragEvent) {
-  if (draggedNode.value.shadowEl) {
-    (draggedNode.value.shadowEl as HTMLElement).style.left = e.clientX - draggedNode.value.offsetXFromMouse + 'px';
-    (draggedNode.value.shadowEl as HTMLElement).style.top = e.clientY - draggedNode.value.offsetYFromMouse + 'px'
-  }
+  
 }
 
 function handleDragstart(e: DragEvent){
@@ -78,49 +69,23 @@ function handleDragstart(e: DragEvent){
   }
 
   // 初始化 draggedNode 的状态
-  const currentRect = recordSingle(e.target as HTMLElement)
   draggedNode.value.el = e.target as HTMLElement;
-  draggedNode.value.offsetXFromMouse = e.clientX - currentRect.left;
-  draggedNode.value.offsetYFromMouse = e.clientY - currentRect.top;
-  draggedNode.value.top = currentRect.top;
-  draggedNode.value.left = currentRect.left;
-  draggedNode.value.width = currentRect.width;
-  draggedNode.value.height = currentRect.height;
 
   setTimeout(() => {
     // 添加 draggedNode 样式
     if (draggedNode.value && draggedNode.value.el) {
       draggedNode.value?.el.classList.add('sortable-chosen');
     }
-
-    // 如果占位 DOM 存在，可能是上一次异常没有清除掉
-    if (draggedNode.value?.shadowEl) {
-      document.body.removeChild(draggedNode.value.shadowEl)
-      draggedNode.value.shadowEl = null;
-    }
-
-    // 添加占位 DOM
-    if (!draggedNode.value?.shadowEl && draggedNode.value?.el) {
-      draggedNode.value.shadowEl = draggedNode.value?.el.cloneNode(true) as HTMLElement
-      draggedNode.value.shadowEl.id = 'flat-sortable-shadow-el';
-      (draggedNode.value.shadowEl as HTMLElement).style.position = 'fixed';
-      (draggedNode.value.shadowEl as HTMLElement).style.pointerEvents = 'none';
-      (draggedNode.value.shadowEl as HTMLElement).classList.remove('sortable-chosen');
-      (draggedNode.value.shadowEl as HTMLElement).style.left = draggedNode.value.left + 'px';
-      (draggedNode.value.shadowEl as HTMLElement).style.top = draggedNode.value.top+ 'px'
-      document.body.appendChild(draggedNode.value.shadowEl)
-    }
   });
 
   e.dataTransfer!.effectAllowed = 'move';
 };
 
-
 function handleDragEnter (e: DragEvent){
   e.preventDefault();
   if (!draggedNode.value || draggedNode.value.el === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
-  hitAllEle( draggedNode.value.el as HTMLElement, e.target as HTMLElement, Array.from(containerRef.value!.children) as HTMLElement[] )
+  hitTest( draggedNode.value.el as HTMLElement, e.target as HTMLElement, Array.from(containerRef.value!.children) as HTMLElement[] )
 };
 
 function handleDragOver(e: DragEvent){
@@ -128,47 +93,12 @@ function handleDragOver(e: DragEvent){
 };
 
 
-function handleDragEnd (e: DragEvent) {
+function handleDragEnd(e: DragEvent) {
 
-  // 播放动画
-  if (draggedNode.value.shadowEl) {
-    (draggedNode.value.shadowEl as HTMLElement).style.left = e.clientX - draggedNode.value.offsetXFromMouse + 'px';
-    (draggedNode.value.shadowEl as HTMLElement).style.top = e.clientY - draggedNode.value.offsetYFromMouse + 'px'
+  if (draggedNode.value && draggedNode.value.el) {
+    draggedNode.value?.el.classList.remove('sortable-chosen');
+    draggedNode.value.el = null;
   }
-
-  if (draggedNode.value.el && draggedNode.value.shadowEl) {
-    
-    const first = recordSingle(draggedNode.value.shadowEl);
-    const last = recordSingle(draggedNode.value.el);
-
-    const diff = {
-      top: first.top - last.top,
-      left: first.left - last.left,
-    };
-
-    const animations = [
-      animateElement(draggedNode.value.shadowEl as HTMLElement, diff, { reverse: false, duration: 300}),
-    ];
-
-    // 等待所有动画完成
-    Promise.all(animations).then(() => {
-
-      if (draggedNode.value.shadowEl) {
-        document.body.removeChild(draggedNode.value.shadowEl)
-        draggedNode.value.shadowEl = null;
-      }
-
-      if (draggedNode.value && draggedNode.value.el) {
-        draggedNode.value?.el.classList.remove('sortable-chosen');
-      }
-
-      if (draggedNode.value.el) {
-        draggedNode.value.el = null;
-      }
-      
-    })
-  }
-
 };
 
 
@@ -185,43 +115,66 @@ function recordSingle(el: HTMLElement | Element): INodeType {
   return { top, left, width, height, el, right, bottom }
 }
 
-async function hitAllEle(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
+async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
 
-  // First
-  const originRectFirst = recordSingle(originNode);
-  const targetRectFirst = recordSingle(targetNode);
   const currentIndex = allNodes.indexOf(originNode);
   const targetIndex = allNodes.indexOf(targetNode);
 
-  if (currentIndex < targetIndex) {
-    // 插入其后
-    targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling);
-  } else {
-    // 插入其前
-    targetNode.parentElement?.insertBefore(originNode, targetNode);
+  if (Math.abs(currentIndex - targetIndex) === 1) {
+
+    const originRectFirst = recordSingle(originNode);
+    const targetRectFirst = recordSingle(targetNode);
+    const currentIndex = allNodes.indexOf(originNode);
+    const targetIndex = allNodes.indexOf(targetNode);
+
+    if (currentIndex < targetIndex) {
+      targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling);
+    } else {
+      targetNode.parentElement?.insertBefore(originNode, targetNode);
+    }
+
+    const originRectLast = recordSingle(originNode);
+    const targetRectLast = recordSingle(targetNode);
+
+    const originDiff = {
+      top: originRectLast.top - originRectFirst.top,
+      left: originRectLast.left - originRectFirst.left,
+    };
+    const targetDiff = {
+      top: targetRectLast.top - targetRectFirst.top,
+      left: targetRectLast.left - targetRectFirst.left,
+    };
+    animateElement(targetNode, targetDiff)
+    animateElement(originNode, originDiff)
   }
-
-  // Last
-  const originRectLast = recordSingle(originNode);
-  const targetRectLast = recordSingle(targetNode);
-
-  // Play
-  const originDiff = {
-    top: originRectLast.top - originRectFirst.top,
-    left: originRectLast.left - originRectFirst.left,
-  };
-  const targetDiff = {
-    top: targetRectLast.top - targetRectFirst.top,
-    left: targetRectLast.left - targetRectFirst.left,
-  };
-  const animations = [
-    animateElement(targetNode, targetDiff),
-    animateElement(originNode, originDiff),
-  ];
-
-  // 等待所有动画完成
-  await Promise.all(animations);
-
+  else if (Math.abs(currentIndex - targetIndex) > 1) {
+    const firsts = allNodes.map(node => {
+      return recordSingle(node)
+    })
+  
+    if (currentIndex < targetIndex) {
+      targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling);
+    } else {
+      targetNode.parentElement?.insertBefore(originNode, targetNode);
+    }
+    nextTick( () => {
+      const lasts = allNodes.map(node => {
+        return recordSingle(node)
+      })
+    
+      for (let i = 0; i < allNodes.length; i++) {
+        const node = allNodes[i];
+        const first = firsts[i];
+        const last = lasts[i];
+        const diff = {
+          top: last.top - first.top,
+          left: last.left - first.left,
+        };
+    
+        animateElement(node, diff)
+      }
+    });
+  }
 }
 
 async function animateElement(
@@ -230,17 +183,16 @@ async function animateElement(
     options: {
       reverse?: boolean;
       duration?: number;
-      easing?: string;
+      easing?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' |string;
       delay?: number;
     } = {
       reverse: true,
       duration: 300,
-      easing: 'linear',
+      easing: 'cubic-bezier(0.42, 0, 0.58, 1)',
       delay: 0,
     }
   ) {
   return new Promise<void>((resolve) => {
-
     const animates = [
       `translate3d(${-diff.left}px, ${-diff.top}px,0px)`,
       'translate3d(0px, 0px, 0px)',
@@ -251,11 +203,11 @@ async function animateElement(
             : [...animates].reverse() , 
           },
       { duration: options.duration, easing: options.easing, delay:options.delay, fill: 'backwards' ,},
-    );
+    )
     animation.onfinish = () => {
       resolve();
-    };
-  });
+    }
+  })
 }
 
 </script>
@@ -268,7 +220,6 @@ async function animateElement(
     transform: 'skew(0)',
   }" @dragstart="handleDragstart" @dragenter="handleDragEnter" @dragover="handleDragOver"
     @dragend="handleDragEnd" @drag="handleDrag">
-
     <slot />
   </div>
 </template>
@@ -281,4 +232,5 @@ async function animateElement(
   border: 1px dashed #ccc;
   pointer-events: none !important;
 }
+
 </style>

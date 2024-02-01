@@ -11,6 +11,7 @@ const emits = defineEmits<FlatSortableItemEmits>()
     class="flat-sortable-item"
     :class="props.class" 
     :draggable="true"
+    style="will-change: transform;"
   >
     <slot />
   </div>
