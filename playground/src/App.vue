@@ -5,7 +5,7 @@ import {
   FlatSortableItem,
 } from '../../packages/vue-flat-sortable/src'
 
-
+import Sticker from './components/Sticker.vue'
 </script>
 
 <template>
@@ -16,7 +16,7 @@ import {
       </FlatSortableItem>
 
       <FlatSortableItem class="item100">
-        {{ 100 }}
+        <Sticker />
       </FlatSortableItem>
 
     </FlatSortableContent>
@@ -34,7 +34,6 @@ import {
 .item100 {
   width: 200px;
   height: 200px;
-  background: #0ebd2e90;
   border-radius: 10px;
 }
 </style>
