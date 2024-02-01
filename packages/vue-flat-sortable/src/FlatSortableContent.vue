@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, provide, ref } from 'vue';
 
 /********************************************************/
 /*                 dragstart 开始拖拽                    */
@@ -51,6 +51,10 @@ const draggedNode = ref<IDraggedNodeType>({
   shadowEl:null
 });
 
+// 是否正在拖拽
+const isDragging = ref<boolean>(false);
+provide('isDragging', isDragging)
+
 /********************************************************/
 /*                 1. 占位 DOM                          */
 /*                 2. 跟随鼠标 DOM                       */
@@ -79,12 +83,15 @@ function handleDragstart(e: DragEvent){
   });
 
   e.dataTransfer!.effectAllowed = 'move';
+
+  isDragging.value = true;
 };
 
 function handleDragEnter (e: DragEvent){
   e.preventDefault();
-  if (!draggedNode.value || draggedNode.value.el === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
 
+  if (!draggedNode.value.el || draggedNode.value.el === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement)) return;
+  
   hitTest( draggedNode.value.el as HTMLElement, e.target as HTMLElement, Array.from(containerRef.value!.children) as HTMLElement[] )
 };
 
@@ -98,6 +105,7 @@ function handleDragEnd(e: DragEvent) {
   if (draggedNode.value && draggedNode.value.el) {
     draggedNode.value?.el.classList.remove('sortable-chosen');
     draggedNode.value.el = null;
+    isDragging.value = false;
   }
 };
 
@@ -188,7 +196,7 @@ async function animateElement(
     } = {
       reverse: true,
       duration: 300,
-      easing: 'cubic-bezier(0.42, 0, 0.58, 1)',
+      easing: 'linear',
       delay: 0,
     }
   ) {
@@ -213,13 +221,22 @@ async function animateElement(
 </script>
 
 <template>
-  <div ref="containerRef" :class="props.class" class="translate-x-0" :style="{
-    display: 'flex',
-    flexDirection: props.direction || 'column',
-    gap: (props.gap || 0) + 'px',
-    transform: 'skew(0)',
-  }" @dragstart="handleDragstart" @dragenter="handleDragEnter" @dragover="handleDragOver"
-    @dragend="handleDragEnd" @drag="handleDrag">
+  <div 
+    ref="containerRef" 
+    :class="props.class" 
+    class="translate-x-0" 
+    :style="{
+      display: 'flex',
+      flexDirection: props.direction || 'column',
+      gap: (props.gap || 0) + 'px',
+      transform: 'skew(0)',
+    }" 
+    @dragstart="handleDragstart" 
+    @dragenter="handleDragEnter" 
+    @dragover="handleDragOver"
+    @dragend="handleDragEnd" 
+    @drag="handleDrag"
+  >
     <slot />
   </div>
 </template>

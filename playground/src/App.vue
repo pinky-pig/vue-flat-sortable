@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import {
-  FlatSortable,
-  FlatSortableContent,
-  FlatSortableItem,
-} from '../../packages/vue-flat-sortable/src'
-
-import Sticker from './components/Sticker.vue'
+import Row from './components/Row.vue'
+import Column from './components/Column.vue'
+import Other from './components/Other.vue'
 </script>
 
 <template>
-  <FlatSortable>
-    <FlatSortableContent :gap="10" class="content112">
-      <FlatSortableItem class="item" v-for="(item, index) in 3" :key="index">
-        {{ item }}
-      </FlatSortableItem>
+  <div class="w-screen flex flex-col justify-start items-center gap-6">
 
-      <FlatSortableItem class="item100">
-        <Sticker />
-      </FlatSortableItem>
+    <div class="w-[60vw]">
+      <span class="font-bold"> Other:</span>
+      <Other></Other>
+    </div>
 
-    </FlatSortableContent>
-  </FlatSortable>
+    <!-- <div class="w-[60vw]">
+      <span class="font-bold"> Row:</span>
+      <Row ></Row>
+    </div>
+
+    <div class="w-[60vw]">
+      <span class="font-bold"> Column:</span>
+      <Column></Column>
+    </div> -->
+
+    
+  </div>
 </template>
 
 <style scoped>
