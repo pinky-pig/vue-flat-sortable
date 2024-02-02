@@ -213,11 +213,11 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
       interruptAnimation(node)
     })
 
-    // allNodes.filter((node,index) => {
-    //   return index >= Math.min(currentIndex, targetIndex) && index <= Math.max(currentIndex, targetIndex)
-    // }).forEach(node => {
-    //   node.setAttribute('data-animating', 'true')
-    // })
+    allNodes.filter((node,index) => {
+      return index >= Math.min(currentIndex, targetIndex) && index <= Math.max(currentIndex, targetIndex)
+    }).forEach(node => {
+      node.setAttribute('data-animating', 'true')
+    })
 
     const filterNodes = allNodes.filter((node,index) => {
       // return index >= Math.min(currentIndex, targetIndex) && index <= Math.max(currentIndex, targetIndex)
@@ -241,7 +241,6 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
         return recordSingle(node)
       })
 
-
       if (currentIndex > targetIndex) {
         // 说明拖拽的元素大于碰撞的元素，那么是插入其前面，动画从后面开始播放
         for (let i = filterNodes.length - 1; i >= 0; i--) {
@@ -253,10 +252,10 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
             left: last.left - first.left,
           };
 
-          if (diff.top !== 0 && diff.left !== 0) {
+          // if (diff.top !== 0 && diff.left !== 0) {
             node.setAttribute('data-animating', 'true')
             animateElement(node, diff)
-          }
+          // }
         }
       }else{
         for (let i = 0; i < filterNodes.length; i++) {
@@ -268,10 +267,10 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
             left: last.left - first.left,
           };
       
-          if (diff.top !== 0 && diff.left !== 0) {
+          // if (diff.top !== 0 && diff.left !== 0) {
             node.setAttribute('data-animating', 'true')
             animateElement(node, diff)
-          }
+          // }
         }
       }
     });
