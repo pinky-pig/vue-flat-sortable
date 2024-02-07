@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { inject } from 'vue'
+import { inject, watch } from 'vue'
 import type { FlatSortableItemEmits, FlatSortableItemProps } from './types'
 
 const props = defineProps<FlatSortableItemProps & { class?: string, inset?: boolean }>()
 const emits = defineEmits<FlatSortableItemEmits>()
 
 const isDragging = inject('isDragging') as Ref<boolean>
+
+watch(isDragging, (v) => {
+  const element = document.querySelector('.flat-sortable-item') as HTMLElement
+  Array.from(element.children).forEach((child) => {
+    (child as HTMLElement).style.pointerEvents = v ? 'none' : 'auto'
+  })
+})
 </script>
 
 <template>
@@ -16,11 +23,6 @@ const isDragging = inject('isDragging') as Ref<boolean>
     :draggable="true"
     style="will-change: transform;"
   >
-    <div
-      style="width: 100%; height: 100%;"
-      :style="{ 'pointer-events': isDragging ? 'none' : 'auto' }"
-    >
-      <slot />
-    </div>
+    <slot />
   </div>
 </template>
