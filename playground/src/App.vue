@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Row from './components/Row.vue'
+import Column from './components/Column.vue'
 import Other from './components/Other.vue'
 </script>
 
@@ -9,15 +11,15 @@ import Other from './components/Other.vue'
       <Other />
     </div>
 
-    <!-- <div class="w-[60vw]">
+    <div class="w-[60vw]">
       <span class="font-bold"> Row:</span>
-      <Row ></Row>
-    </div> -->
+      <Row />
+    </div>
 
-    <!-- <div class="w-[60vw]">
+    <div class="w-[60vw]">
       <span class="font-bold"> Column:</span>
-      <Column></Column>
-    </div> -->
+      <Column />
+    </div>
   </div>
 </template>
 
