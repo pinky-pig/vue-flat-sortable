@@ -3,7 +3,6 @@ import type { FlatSortableEmits, FlatSortableProps } from './types'
 
 const props = defineProps<FlatSortableProps & { class?: string }>()
 const emits = defineEmits<FlatSortableEmits>()
-
 </script>
 
 <template>

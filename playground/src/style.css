@@ -10,10 +10,10 @@ body {
   min-height: 100vh;
 }
 
-html.dark{
+html.dark {
   --cover-main-color: #0d1117;
 }
-html{
+html {
   --cover-main-color: #1e2982;
 }
 

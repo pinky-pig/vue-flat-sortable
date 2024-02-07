@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FlatSortable, FlatSortableContent, FlatSortableItem, } from '../../../packages/vue-flat-sortable/src'
+import { FlatSortable, FlatSortableContent, FlatSortableItem } from '../../../packages/vue-flat-sortable/src'
 
 import Sticker from './Sticker.vue'
 </script>
@@ -11,17 +11,15 @@ import Sticker from './Sticker.vue'
         <FlatSortableItem class="w-[140px] h-[100px] rounded-md">
           <Sticker />
         </FlatSortableItem>
-  
-        <FlatSortableItem class="w-[100px] h-[50px] bg-[#1e2982] font-bold text-white rounded-md grid place-items-center" v-for="(item, index) in 20" :key="index">
+
+        <FlatSortableItem v-for="(item, index) in 20" :key="index" class="w-[100px] h-[50px] bg-[#1e2982] font-bold text-white rounded-md grid place-items-center">
           {{ item }}
         </FlatSortableItem>
-  
+
         <FlatSortableItem class="w-[140px] h-[100px] rounded-md">
           <Sticker />
         </FlatSortableItem>
-  
       </FlatSortableContent>
     </FlatSortable>
   </div>
 </template>
-

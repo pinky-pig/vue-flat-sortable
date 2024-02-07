@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { Ref, inject, watch } from 'vue';
-import { FlatSortableItemEmits, FlatSortableItemProps } from './types';
+import type { Ref } from 'vue'
+import { inject } from 'vue'
+import type { FlatSortableItemEmits, FlatSortableItemProps } from './types'
 
 const props = defineProps<FlatSortableItemProps & { class?: string, inset?: boolean }>()
 const emits = defineEmits<FlatSortableItemEmits>()
 
 const isDragging = inject('isDragging') as Ref<boolean>
-
 </script>
 
 <template>
-  <div 
+  <div
     class="flat-sortable-item"
-    :class="props.class" 
+    :class="props.class"
     :draggable="true"
     style="will-change: transform;"
   >
-    <div 
-      style="width: 100%; height: 100%;" 
+    <div
+      style="width: 100%; height: 100%;"
       :style="{ 'pointer-events': isDragging ? 'none' : 'auto' }"
     >
       <slot />

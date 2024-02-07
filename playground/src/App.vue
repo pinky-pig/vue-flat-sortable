@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import Row from './components/Row.vue'
-import Column from './components/Column.vue'
 import Other from './components/Other.vue'
 </script>
 
 <template>
   <div class="w-screen flex flex-col justify-start items-center gap-6">
-
     <div class="w-[60vw] h-[60vh] ">
       <span class="font-bold"> Other:</span>
-      <Other></Other>
+      <Other />
     </div>
 
     <!-- <div class="w-[60vw]">
@@ -21,8 +18,6 @@ import Other from './components/Other.vue'
       <span class="font-bold"> Column:</span>
       <Column></Column>
     </div> -->
-
-    
   </div>
 </template>
 
