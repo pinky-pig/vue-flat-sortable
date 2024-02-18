@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, provide, ref } from 'vue'
+import { nextTick, onMounted, provide, ref } from 'vue'
 
 /********************************************************/
 /*                 dragstart 开始拖拽                    */
@@ -7,10 +7,11 @@ import { nextTick, provide, ref } from 'vue'
 /********************************************************/
 
 const props = defineProps<FlatSortableContentProps>()
-// eslint-disable-next-line vue/valid-define-emits
-const emits = defineEmits()
+
+const emits = defineEmits(['update:modelValue'])
 
 interface FlatSortableContentProps {
+  modelValue: string[]
   class?: string
   direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse'
   gap?: number
@@ -56,6 +57,26 @@ const draggedNode = ref<IDraggedNodeType>({
 const isDragging = ref<boolean>(false)
 provide('isDragging', isDragging)
 
+// 给拖拽的元素添加类名，这样排序后的顺序可以知道
+onMounted(() => {
+  if (!containerRef.value)
+    return
+  if (!props.modelValue) {
+    console.warn('FlatSortableContent modelValue is required')
+    return
+  }
+
+  const flatItem = Array.from(containerRef.value.children)
+    ?.filter(el => el.classList.contains('flat-sortable-item'))
+
+  if (flatItem.length !== props.modelValue.length) {
+    console.warn(`FlatSortableContent modelValue's length not equals to props.modelValue's length`)
+    return
+  }
+
+  flatItem?.forEach((el, index) => el.classList.add(`flat-sortable-content-${props.modelValue[index]}`))
+})
+
 /********************************************************/
 /*                 1. 占位 DOM                          */
 /*                 2. 跟随鼠标 DOM                       */
@@ -85,7 +106,6 @@ function handleDragstart(e: DragEvent) {
 
 function handleDragEnter(e: DragEvent) {
   e.preventDefault()
-
   // 如果拖拽的不是 FlatSortableItem 则不进行拖拽
   if (!isFlatSortableItem(e.target as HTMLElement))
     return
@@ -93,7 +113,8 @@ function handleDragEnter(e: DragEvent) {
   if (!draggedNode.value.el || draggedNode.value.el === e.target || e.target === containerRef.value || !isFlatSortableItem(e.target as HTMLElement))
     return
 
-  hitTest(draggedNode.value.el as HTMLElement, e.target as HTMLElement, Array.from(containerRef.value!.children) as HTMLElement[])
+  const allNodes = (Array.from(containerRef.value!.children) as HTMLElement[]).filter(node => isFlatSortableItem(node))
+  hitTest(draggedNode.value.el as HTMLElement, e.target as HTMLElement, allNodes)
 };
 
 function handleDragOver(e: DragEvent) {
@@ -162,15 +183,24 @@ async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNode
     return last
   })
 
-  /** */
+  /** 更改 DOM start */
   if (currentIndex < targetIndex)
     targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling)
   else
     targetNode.parentElement?.insertBefore(originNode, targetNode)
-
-  /** */
+  /** 更改 DOM end */
 
   nextTick(async () => {
+    /** 更改绑定的 class 数组 start */
+    const updatedAllNodes = (Array.from(containerRef.value!.children) as HTMLElement[]).filter(node => isFlatSortableItem(node))
+    const updatedFlatSortableContent = updatedAllNodes.map((el) => {
+      const classes = Array.from(el.classList)
+      const matchingClasses = classes.filter(className => className.startsWith('flat-sortable-content-'))
+      return matchingClasses[0].split('flat-sortable-content-')[1]
+    })
+    emits('update:modelValue', updatedFlatSortableContent)
+    /** 更改绑定的 class 数组 end */
+
     const lasts = filterNodes.map((node) => {
       return recordSingle(node)
     })
