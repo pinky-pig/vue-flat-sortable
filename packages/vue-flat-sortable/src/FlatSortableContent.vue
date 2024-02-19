@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, provide, ref } from 'vue'
+import { nextTick, onMounted, provide, ref, watch } from 'vue'
 
 /********************************************************/
 /*                 dragstart 开始拖拽                    */
@@ -55,7 +55,6 @@ const draggedNode = ref<IDraggedNodeType>({
 
 // 是否正在拖拽
 const isDragging = ref<boolean>(false)
-provide('isDragging', isDragging)
 
 onMounted(() => {
   // 给拖拽的元素添加类名，这样排序后的顺序可以知道
@@ -66,15 +65,15 @@ onMounted(() => {
     return
   }
 
-  const flatItem = Array.from(containerRef.value.children)
+  const flatItems = Array.from(containerRef.value.children)
     ?.filter(el => el.classList.contains('flat-sortable-item'))
 
-  if (flatItem.length !== props.modelValue.length) {
-    console.warn(`FlatSortableContent modelValue's length not equals to props.modelValue's length. flatItem.length === ${flatItem.length} and props.modelValue.length === ${props.modelValue.length}`)
+  if (flatItems.length !== props.modelValue.length) {
+    console.warn(`FlatSortableContent modelValue's length not equals to props.modelValue's length. flatItem.length === ${flatItems.length} and props.modelValue.length === ${props.modelValue.length}`)
     return
   }
 
-  flatItem?.forEach((el, index) => el.classList.add(`flat-sortable-content-${props.modelValue[index]}`))
+  flatItems?.forEach((el, index) => el.classList.add(`flat-sortable-content-${props.modelValue[index]}`))
 
   // 不是flatItem的元素，放置末尾
   const nonFlatItem = Array.from(containerRef.value.children)
@@ -83,6 +82,19 @@ onMounted(() => {
   nonFlatItem.forEach((el) => {
     const insertBeforeElement = null // 末尾位置为 null
     containerRef.value!.insertBefore(el, insertBeforeElement)
+  })
+})
+
+// 给拖拽元素设置 pointerEvents 为 none ，以防 dragenter 触发的子元素
+watch(isDragging, (v) => {
+  if (!containerRef.value)
+    return
+  const flatItems = Array.from(containerRef.value.children)
+    ?.filter(el => el.classList.contains('flat-sortable-item'))
+  flatItems.forEach((element) => {
+    Array.from(element.children).forEach((child) => {
+      (child as HTMLElement).style.pointerEvents = v ? 'none' : 'auto'
+    })
   })
 })
 
