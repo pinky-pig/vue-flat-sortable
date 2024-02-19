@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { inject, watch } from 'vue'
 import type { FlatSortableItemEmits, FlatSortableItemProps } from './types'
 
 const props = defineProps<FlatSortableItemProps & { class?: string, inset?: boolean }>()

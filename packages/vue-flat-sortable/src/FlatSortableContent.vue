@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, provide, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 
 /********************************************************/
 /*                 dragstart 开始拖拽                    */
