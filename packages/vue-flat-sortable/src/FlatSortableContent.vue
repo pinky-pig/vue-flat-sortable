@@ -57,8 +57,8 @@ const draggedNode = ref<IDraggedNodeType>({
 const isDragging = ref<boolean>(false)
 provide('isDragging', isDragging)
 
-// 给拖拽的元素添加类名，这样排序后的顺序可以知道
 onMounted(() => {
+  // 给拖拽的元素添加类名，这样排序后的顺序可以知道
   if (!containerRef.value)
     return
   if (!props.modelValue) {
@@ -70,11 +70,20 @@ onMounted(() => {
     ?.filter(el => el.classList.contains('flat-sortable-item'))
 
   if (flatItem.length !== props.modelValue.length) {
-    console.warn(`FlatSortableContent modelValue's length not equals to props.modelValue's length`)
+    console.warn(`FlatSortableContent modelValue's length not equals to props.modelValue's length. flatItem.length === ${flatItem.length} and props.modelValue.length === ${props.modelValue.length}`)
     return
   }
 
   flatItem?.forEach((el, index) => el.classList.add(`flat-sortable-content-${props.modelValue[index]}`))
+
+  // 不是flatItem的元素，放置末尾
+  const nonFlatItem = Array.from(containerRef.value.children)
+    ?.filter(el => !el.classList.contains('flat-sortable-item')) as HTMLElement[]
+
+  nonFlatItem.forEach((el) => {
+    const insertBeforeElement = null // 末尾位置为 null
+    containerRef.value!.insertBefore(el, insertBeforeElement)
+  })
 })
 
 /********************************************************/
