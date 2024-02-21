@@ -23,8 +23,12 @@ const flatContents = ref([
         <FlatSortableItem class="w-[140px] h-[100px] rounded-md">
           <Sticker />
         </FlatSortableItem>
-        <div>777</div>
-        <div>666</div>
+        <div class="w-[120px] text-wrap border-dashed border border-[#1e2982]">
+          不可拖拽元素A 置于末尾
+        </div>
+        <div class="w-[120px] text-wrap border-dashed border border-[#1e2982]">
+          不可拖拽元素B 置于末尾
+        </div>
 
         <FlatSortableItem v-for="(item, index) in 2" :key="index" class="w-[100px] h-[50px] bg-[#1e2982] font-bold text-white rounded-md grid place-items-center">
           {{ item }}

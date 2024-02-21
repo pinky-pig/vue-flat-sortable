@@ -110,9 +110,6 @@ watch(isDragging, (v) => {
 /*                 2. 拖拽过渡，结束拖拽过渡               */
 /********************************************************/
 
-function handleDrag(_e: DragEvent) {
-}
-
 function handleDragstart(e: DragEvent) {
   //  如果拖拽的不是 FlatSortableItem 则不进行拖拽
   if (!isFlatSortableItem(e.target as HTMLElement))
@@ -304,8 +301,11 @@ async function animateElement(
       flexDirection: props.direction || 'column',
       gap: `${props.gap || 0}px`,
       transform: 'skew(0)',
-    }" @dragstart="handleDragstart" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragend="handleDragEnd"
-    @drag="handleDrag"
+    }"
+    @dragstart="handleDragstart"
+    @dragenter="handleDragEnter"
+    @dragover="handleDragOver"
+    @dragend="handleDragEnd"
   >
     <slot />
   </div>

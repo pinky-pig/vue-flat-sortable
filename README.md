@@ -3,8 +3,174 @@
 	<h6 align="center">Component based in Vue3</h6>
 </div>
 
-# 🌸 Get Started
-
 <p align="center">
-<img src="https://cdn.jsdelivr.net/gh/pinky-pig/pic-bed/imagesdrag.gif"  height="300">
+<img alt="vue-flat-sortable" src="https://cdn.jsdelivr.net/gh/pinky-pig/pic-bed/imagesvue-flat-sortable.gif"  height="300">
 </p>
+
+# Vue3 同级排序 vue-flat-sortable
+
+比较简单的在同级之间排序，将元素拖拽到目标位置，然后插入到目标位置之前，达成排序。
+简单实现 [Sortable](https://github.com/SortableJS/Sortable) 的基础用法。
+
+主要要解决的三个问题就是：
+
+- 排序
+- 动画
+- 连续动画
+
+## 实现思路
+
+使用到的属性和方法：
+
+- 属性 `draggable`
+- 事件 `dragstart` 、 `dragenter` 、 `dragover` 、 `dragend`
+- 方法 `element.insertBefore` 、 `element.animate` 、`element.getBoundingClientRect`
+
+开发思路：
+
+1. (dragstart) 获取拖拽元素。
+2. (dragenter) 获取目标元素。
+3. 当拖拽元素被拖拽到目标位置时，可知当前两个元素碰撞， insertBefore 将拖拽元素插入到目标元素之前或之后，根据拖拽元素的 index 与目标元素的 index 比较结果。
+4. 对所有元素进行动画效果，因为每个元素的大小不一致，移动位置的时候需要重新计算，只对拖拽元素和目标元素设置动画可能会忽略其他元素的变化效果。所以需要记录所有元素 insertBefore 之前和之后的位置，使用 animate 方法实现动画效果。
+5. 如果是拖拽元素和目标元素之间的元素，设置动画的时候，同时给其设置一个正在进行动画的标志属性。避免还在动画过程中，拖拽元素与其碰撞，再次进行排序。
+6. 如果是其他元素正在动画过程中，再次碰撞，可以**不做处理**。也可以使用 `getComputedStyle` 获取正在进行动画的元素的 `translate` 值（因为我们这里用到的 `element.animate` 其实就是对元素设置 `transform: matrix()`，然后获取其正在进行动画的时候的位置）。再使用 getElementAnimation 方法获取正在进行的动画，然后取消该动画。再以 `getBoundingClientRect` 获取的位置和`translate` 值相减，得到目标元素需要移动的距离，作为动画的初始位置，开始新的动画。
+7. 一些其他的事情，比如排序后的返回值，容器内的元素是否可拖拽，是否在拖拽中等，这些都是比较简单的后续添加。
+
+## 代码实现
+
+这里就只贴碰撞检测和设置动画。
+
+碰撞检测：
+
+```ts
+/**
+ * 这里碰撞检测比较简单，但是动画比较繁琐
+ * 首先碰撞就是 dragenter 已经拿到了，不需要再操作了
+ * 其次是交换位置只需要 insertBefore 插入就行
+ * 动画这块，直接使用 animates
+ * 但是因为设计到快速多次动画触发，所以造成动画异常
+ * @param originNode 拖拽的元素
+ * @param targetNode 碰撞的元素
+ * @param allNodes 所有的容器内的子元素
+ */
+async function hitTest(originNode: HTMLElement, targetNode: HTMLElement, allNodes: HTMLElement[]) {
+  // 判断当前碰撞的元素是否在动画中，如果是，那么就跳过
+  const targetIsAnimating = targetNode.getAttribute('data-animating')
+  if (targetIsAnimating === 'true')
+    return
+
+  const currentIndex = allNodes.indexOf(originNode)
+  const targetIndex = allNodes.indexOf(targetNode)
+
+  // 在中间的元素，添加动画的标志
+  allNodes.filter((node, index) => {
+    return index >= Math.min(currentIndex, targetIndex) && index <= Math.max(currentIndex, targetIndex)
+  }).forEach((node) => {
+    node.setAttribute('data-animating', 'true')
+  })
+
+  // 过滤出 index 最前面的元素的之后所有的元素，为后面开始动画
+  const filterNodes = allNodes.filter((node, index) => {
+    return index >= Math.min(currentIndex, targetIndex)
+  })
+
+  const firsts = filterNodes.map((node) => {
+    // 1. 如果当前的元素有动画效果，那么就要以动画效果的位置为初始
+    const last = recordSingle(node)
+    const animation = node.getAnimations()[0]
+    if (animation)
+      animation.cancel()
+
+    return last
+  })
+
+  /** 更改 DOM start */
+  if (currentIndex < targetIndex)
+    targetNode.parentElement?.insertBefore(originNode, targetNode.nextSibling)
+  else
+    targetNode.parentElement?.insertBefore(originNode, targetNode)
+  /** 更改 DOM end */
+
+  nextTick(async () => {
+    /** 更改绑定的 class 数组 start */
+    const updatedAllNodes = (Array.from(containerRef.value!.children) as HTMLElement[]).filter(node => isFlatSortableItem(node))
+    const updatedFlatSortableContent = updatedAllNodes.map((el) => {
+      const classes = Array.from(el.classList)
+      const matchingClasses = classes.filter(className => className.startsWith('flat-sortable-content-'))
+      return matchingClasses[0].split('flat-sortable-content-')[1]
+    })
+    emits('update:modelValue', updatedFlatSortableContent)
+    /** 更改绑定的 class 数组 end */
+
+    const lasts = filterNodes.map((node) => {
+      return recordSingle(node)
+    })
+
+    if (currentIndex > targetIndex) {
+      // 说明拖拽的元素大于碰撞的元素，那么是插入其前面，动画从后面开始播放
+      for (let i = filterNodes.length - 1; i >= 0; i--) {
+        const node = filterNodes[i]
+        const first = firsts[i]
+        const last = lasts[i]
+        const diff = {
+          top: last.top - first.top,
+          left: last.left - first.left,
+        }
+        animateElement(node, diff)
+      }
+    }
+    else {
+      for (let i = 0; i < filterNodes.length; i++) {
+        const node = filterNodes[i]
+        const first = firsts[i]
+        const last = lasts[i]
+        const diff = {
+          top: last.top - first.top,
+          left: last.left - first.left,
+        }
+        animateElement(node, diff)
+      }
+    }
+  })
+}
+```
+
+设置动画：
+
+```ts
+async function animateElement(
+  element: HTMLElement,
+  diff: { top: number, left: number },
+  options: {
+    reverse?: boolean
+    duration?: number
+    easing?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | string
+    delay?: number
+  } = {
+    reverse: true,
+    duration: 300,
+    easing: 'linear',
+    delay: 0,
+  },
+) {
+  return new Promise<void>((resolve) => {
+    const animates = [
+      `translate3d(${-diff.left}px, ${-diff.top}px,0px)`,
+      'translate3d(0px, 0px, 0px)',
+    ]
+    const animation = element.animate(
+      {
+        transform: options.reverse
+          ? animates
+          : [...animates].reverse(),
+      },
+      { duration: options.duration, easing: options.easing, delay: options.delay, fill: 'backwards' },
+    )
+    animation.onfinish = () => {
+      // 标志位，结束动画
+      element.removeAttribute('data-animating')
+      resolve()
+    }
+  })
+}
+```

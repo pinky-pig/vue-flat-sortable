@@ -5,7 +5,7 @@ import Other from './components/Other.vue'
 </script>
 
 <template>
-  <div class="w-screen flex flex-col justify-start items-center gap-6">
+  <div class="w-full flex flex-col justify-start items-center gap-6">
     <div class="w-[60vw] h-[60vh] ">
       <span class="font-bold"> Other:</span>
       <Other />
